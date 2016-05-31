@@ -1,1 +1,3 @@
-## React Webpack demo
+jd_sopr_fe
+====
+京东搜索运营分析平台前端
