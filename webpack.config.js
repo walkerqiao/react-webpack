@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 const webpack = require('webpack');
 const merge = require('webpack-merge');
 
@@ -7,28 +8,57 @@ const NpmInstallPlugin = require('npm-install-webpack-plugin');
 const TARGET = process.env.npm_lifecycle_event;
 
 const PATHS = {
-    app: path.join(__dirname, 'app'),
+    app: path.join(__dirname, 'src'),
     build: path.join(__dirname, 'build')
 };
+
+var node_modules_dir = path.join(__dirname, 'node_modules');
+
 process.env.BABEL_ENV = TARGET;
 
+function getEntry() {
+    var jsPath = path.resolve(PATHS.app, 'js');
+    var dirs = fs.readdirSync(jsPath);
+    var matchs = [], files = {};
+    dirs.forEach(function (item) {
+        matchs = item.match(/(.+)\.js$/);
+        if (matchs) {
+            files[matchs[1]] = path.resolve(PATHS.app, 'js', item);
+        }
+    });
+    return files;
+}
+
 const common = {
+    cache: false,
+    devtool: "source-map",
+    addVendor: function (name, path) {
+        this.resolve.alias[name] = path;
+        this.module.noParse.push(path);
+    },
+    context: __dirname,
     // Entry accepts a path or an object of entries. We'll be using the
     // latter form given it's convenient with more complex configurations.
-    entry: {
-        app: PATHS.app
-    },
+    entry: getEntry(),
     // Add resolve.extensions.
     // '' is needed to allow imports without an extension.
     // Note the .'s before extensions as it will fail to match without!!!
     resolve: {
+        alias: {},
         extensions: ['', '.js', '.jsx']
     },
-    output: {
+    /*output: {
         path: PATHS.build,
         filename: 'bundle.js'
+    },*/
+    output: {
+        path: path.resolve(PATHS.build, 'js'),
+        publicPath: PATHS.build + "/js/",
+        filename: "[name].js",
+        chunkFilename: "[chunkhash].js"
     },
     module: {
+        noParse: [],
         loaders: [
             {
                 // Test expects a RegExp! Note the slashes!
@@ -51,6 +81,9 @@ const common = {
         ]
     }
 };
+//common.addVendor('react', path.resolve(node_modules_dir, 'react/dist/react.min.js'));
+//common.addVendor('react-dom', path.resolve(node_modules_dir, 'react-dom/dist/react-dom.min.js'));
+//common.addVendor('jquery', path.resolve(bower_dir, 'jquery/dist/jquery.min.js'));
 
 // Default configuration. We will return this if
 // Webpack is called outside of npm.
